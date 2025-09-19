@@ -8,8 +8,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MapPin, Mail, Lock, User, Phone } from 'lucide-react';
+import { useAuth } from '@/components/auth/AuthProvider';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+import { toast } from 'sonner';
 
 export default function LoginPage() {
+  const { signIn, user } = useAuth();
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
+  
   const [playerForm, setPlayerForm] = useState({
     email: '',
     password: ''
@@ -20,6 +28,33 @@ export default function LoginPage() {
     password: ''
   });
 
+  useEffect(() => {
+    if (user) {
+      router.push('/');
+    }
+  }, [user, router]);
+
+  const handleLogin = async (e: React.FormEvent, role: 'player' | 'owner') => {
+    e.preventDefault();
+    setIsLoading(true);
+    
+    const formData = role === 'player' ? playerForm : ownerForm;
+    
+    try {
+      const { error } = await signIn(formData.email, formData.password);
+      
+      if (error) {
+        toast.error(error.message);
+      } else {
+        toast.success('Login successful!');
+        router.push('/');
+      }
+    } catch (error) {
+      toast.error('Login failed');
+    } finally {
+      setIsLoading(false);
+    }
+  };
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
       <div className="max-w-md w-full">
@@ -49,7 +84,7 @@ export default function LoginPage() {
               </TabsList>
               
               <TabsContent value="player">
-                <form className="space-y-4">
+                <form className="space-y-4" onSubmit={(e) => handleLogin(e, 'player')}>
                   <div>
                     <Label htmlFor="player-email">Email</Label>
                     <div className="relative">
@@ -61,6 +96,7 @@ export default function LoginPage() {
                         className="pl-10"
                         value={playerForm.email}
                         onChange={(e) => setPlayerForm({...playerForm, email: e.target.value})}
+                        required
                       />
                     </div>
                   </div>
@@ -76,18 +112,24 @@ export default function LoginPage() {
                         className="pl-10"
                         value={playerForm.password}
                         onChange={(e) => setPlayerForm({...playerForm, password: e.target.value})}
+                        required
                       />
                     </div>
                   </div>
 
-                  <Button className="w-full bg-green-500 hover:bg-green-600" size="lg">
-                    Sign In as Player
+                  <Button 
+                    className="w-full bg-green-500 hover:bg-green-600" 
+                    size="lg"
+                    type="submit"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? 'Signing In...' : 'Sign In as Player'}
                   </Button>
                 </form>
               </TabsContent>
               
               <TabsContent value="owner">
-                <form className="space-y-4">
+                <form className="space-y-4" onSubmit={(e) => handleLogin(e, 'owner')}>
                   <div>
                     <Label htmlFor="owner-email">Email</Label>
                     <div className="relative">
@@ -99,6 +141,7 @@ export default function LoginPage() {
                         className="pl-10"
                         value={ownerForm.email}
                         onChange={(e) => setOwnerForm({...ownerForm, email: e.target.value})}
+                        required
                       />
                     </div>
                   </div>
@@ -114,12 +157,18 @@ export default function LoginPage() {
                         className="pl-10"
                         value={ownerForm.password}
                         onChange={(e) => setOwnerForm({...ownerForm, password: e.target.value})}
+                        required
                       />
                     </div>
                   </div>
 
-                  <Button className="w-full bg-blue-500 hover:bg-blue-600" size="lg">
-                    Sign In as Owner
+                  <Button 
+                    className="w-full bg-blue-500 hover:bg-blue-600" 
+                    size="lg"
+                    type="submit"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? 'Signing In...' : 'Sign In as Owner'}
                   </Button>
                 </form>
               </TabsContent>

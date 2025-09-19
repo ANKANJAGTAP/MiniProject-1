@@ -8,20 +8,27 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, Clock, CreditCard, Tag } from 'lucide-react';
 import { useState } from 'react';
+import { useAuth } from '@/components/auth/AuthProvider';
+import { toast } from 'sonner';
 
 interface BookingSummaryProps {
   turf: {
+    id?: number;
     name: string;
     price: number;
     location: string;
   };
   selectedDate: Date;
   selectedSlots: string[];
+  qrUsed?: boolean;
 }
 
-export function BookingSummary({ turf, selectedDate, selectedSlots }: BookingSummaryProps) {
+export function BookingSummary({ turf, selectedDate, selectedSlots, qrUsed = false }: BookingSummaryProps) {
   const [promoCode, setPromoCode] = useState('');
   const [promoApplied, setPromoApplied] = useState(false);
+  const [isBooking, setIsBooking] = useState(false);
+  
+  const { user, session } = useAuth();
 
   const basePrice = turf.price * selectedSlots.length;
   const discount = promoApplied ? basePrice * 0.1 : 0; // 10% discount
@@ -35,14 +42,57 @@ export function BookingSummary({ turf, selectedDate, selectedSlots }: BookingSum
     }
   };
 
-  const handleBooking = () => {
+  const handleBooking = async () => {
     if (selectedSlots.length === 0) {
-      alert('Please select at least one time slot');
+      toast.error('Please select at least one time slot');
       return;
     }
     
-    // In real app, this would integrate with payment gateway
-    alert(`Booking confirmed for ${selectedSlots.length} slots at ${turf.name}`);
+    if (!user || !session) {
+      toast.error('Please login to make a booking');
+      return;
+    }
+
+    setIsBooking(true);
+    try {
+      const bookingData = {
+        turfId: turf.id,
+        slot: {
+          date: selectedDate.toISOString().split('T')[0],
+          start: selectedSlots[0].split(' - ')[0],
+          end: selectedSlots[selectedSlots.length - 1].split(' - ')[1],
+        },
+        amount: totalAmount,
+        qrUsed,
+      };
+
+      const response = await fetch('/api/bookings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify(bookingData),
+      });
+
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.error || 'Booking failed');
+      }
+
+      toast.success(`Booking confirmed for ${selectedSlots.length} slots at ${turf.name}`);
+      
+      // Reset form
+      // setSelectedSlots([]);
+      setPromoCode('');
+      setPromoApplied(false);
+      
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Booking failed');
+    } finally {
+      setIsBooking(false);
+    }
   };
 
   return (
@@ -158,9 +208,23 @@ export function BookingSummary({ turf, selectedDate, selectedSlots }: BookingSum
                 className="w-full bg-green-500 hover:bg-green-600" 
                 size="lg"
                 onClick={handleBooking}
+                disabled={isBooking || !user}
               >
-                Proceed to Payment - ₹{totalAmount.toFixed(2)}
+                {isBooking 
+                  ? 'Processing...' 
+                  : !user 
+                    ? 'Login Required' 
+                    : `Proceed to Payment - ₹{totalAmount.toFixed(2)}`
+                }
               </Button>
+              
+              {qrUsed && (
+                <div className="mt-2 p-2 bg-green-50 rounded text-center">
+                  <p className="text-xs text-green-700">
+                    ✓ Booking via QR Code
+                  </p>
+                </div>
+              )}
             </>
           )}
 

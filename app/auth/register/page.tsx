@@ -10,25 +10,18 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Checkbox } from '@/components/ui/checkbox';
 import { MapPin, Mail, Lock, User, Phone, Building, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/components/auth/AuthProvider';
+import { useEffect } from 'react';
+import { toast } from 'sonner';
 
 // Define user types
 type UserRole = 'player' | 'owner';
 
-interface UserData {
-  uid: string;
-  name: string;
-  email: string;
-  phone: string;
-  role: UserRole;
-  businessName?: string;
-  createdAt: Date;
-}
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { signUp, user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
@@ -51,27 +44,11 @@ export default function RegisterPage() {
     acceptTerms: false
   });
 
-  // Function to save user data to MongoDB
-  const saveUserToMongoDB = async (userData: UserData) => {
-    try {
-      const response = await fetch('/api/users', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(userData),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to save user data to database');
-      }
-
-      return await response.json();
-    } catch (error) {
-      console.error('Error saving user to MongoDB:', error);
-      throw error;
+  useEffect(() => {
+    if (user) {
+      router.push('/');
     }
-  };
+  }, [user, router]);
 
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent, role: UserRole) => {
@@ -95,38 +72,22 @@ export default function RegisterPage() {
         throw new Error('Password should be at least 6 characters');
       }
 
-      // Create user with Firebase Auth
-      const userCredential = await createUserWithEmailAndPassword(
-        auth, 
-        formData.email, 
-        formData.password
-      );
-      
-      // Update profile with display name
-      await updateProfile(userCredential.user, {
-        displayName: formData.name
-      });
-
-      // Prepare user data for MongoDB
-      const userData: UserData = {
-        uid: userCredential.user.uid,
+      // Create user with Supabase Auth
+      const metadata = {
         name: formData.name,
-        email: formData.email,
         phone: formData.phone,
         role,
-        createdAt: new Date(),
+        ...(role === 'owner' && { businessName: ownerForm.businessName }),
       };
 
-      // Add business name if it's an owner
-      if (role === 'owner') {
-        userData.businessName = ownerForm.businessName;
+      const { error } = await signUp(formData.email, formData.password, metadata);
+      
+      if (error) {
+        throw new Error(error.message);
       }
 
-      // Save user data to MongoDB
-      await saveUserToMongoDB(userData);
-
-      // Redirect based on role
-      router.push(role === 'player' ? '/dashboard/player' : '/dashboard/owner');
+      toast.success('Account created successfully! Please check your email for verification.');
+      router.push('/auth/login');
       
     } catch (error: any) {
       console.error('Registration error:', error);

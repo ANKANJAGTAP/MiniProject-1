@@ -1,0 +1,74 @@
+import { MongoClient, Db, ObjectId } from 'mongodb';
+
+const uri = process.env.MONGODB_URI;
+if (!uri) {
+  throw new Error('Please add MONGODB_URI to your .env file');
+}
+
+let client: MongoClient;
+let clientPromise: Promise<MongoClient>;
+
+declare global {
+  var _mongoClientPromise: Promise<MongoClient>;
+}
+
+if (process.env.NODE_ENV === 'development') {
+  if (!global._mongoClientPromise) {
+    client = new MongoClient(uri);
+    global._mongoClientPromise = client.connect();
+  }
+  clientPromise = global._mongoClientPromise;
+} else {
+  client = new MongoClient(uri);
+  clientPromise = client.connect();
+}
+
+export async function getDatabase(): Promise<Db> {
+  const client = await clientPromise;
+  return client.db('turfbook');
+}
+
+// Database schemas
+export interface TurfDocument {
+  _id?: ObjectId;
+  name: string;
+  location: string;
+  pricePerHour: number;
+  images: string[];
+  availableSports: string[];
+  amenities: string[];
+  operatingHours: {
+    open: string;
+    close: string;
+  };
+  qrToken: string;
+  qrUrl?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface BookingDocument {
+  _id?: ObjectId;
+  turfId: ObjectId;
+  userId: string; // Supabase user ID
+  slot: {
+    date: string;
+    start: string;
+    end: string;
+  };
+  amount: number;
+  status: 'pending' | 'confirmed' | 'cancelled';
+  paymentId?: string;
+  createdAt: Date;
+  qrUsed: boolean;
+}
+
+export interface ProfileDocument {
+  _id?: ObjectId;
+  supabaseUserId: string;
+  name: string;
+  phone?: string;
+  createdAt: Date;
+}
+
+export default clientPromise;
