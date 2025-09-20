@@ -18,23 +18,45 @@ export async function GET(
     const frontendHost = process.env.FRONTEND_HOST || 'http://localhost:3000';
     const qrUrl = `${frontendHost}/book/${params.id}?qrToken=${turf.qrToken}`;
     
-    // Generate QR code as PNG buffer
-    const qrBuffer = await QRCode.toBuffer(qrUrl, {
-      type: 'png',
-      width: 256,
-      margin: 2,
-      color: {
-        dark: '#000000',
-        light: '#FFFFFF'
-      }
-    });
+    const acceptHeader = request.headers.get('accept') || '';
+    
+    if (acceptHeader.includes('application/json')) {
+      // Return data URL for JSON requests
+      const dataUrl = await QRCode.toDataURL(qrUrl, {
+        type: 'image/png',
+        width: 256,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        }
+      });
+      
+      return NextResponse.json({ 
+        dataUrl,
+        qrUrl,
+        turfName: turf.name 
+      });
+    } else {
+      // Return PNG image for direct requests
+      const qrBuffer = await QRCode.toBuffer(qrUrl, {
+        type: 'png',
+        width: 256,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        }
+      });
 
-    return new NextResponse(qrBuffer, {
-      headers: {
-        'Content-Type': 'image/png',
-        'Cache-Control': 'public, max-age=3600',
-      },
-    });
+      return new NextResponse(qrBuffer, {
+        headers: {
+          'Content-Type': 'image/png',
+          'Content-Disposition': `attachment; filename="${turf.name.replace(/\s+/g, '_')}_QR.png"`,
+          'Cache-Control': 'public, max-age=3600',
+        },
+      });
+    }
   } catch (error) {
     console.error('Error generating QR image:', error);
     return NextResponse.json({ error: 'Failed to generate QR image' }, { status: 500 });

@@ -1,0 +1,233 @@
+{
+  "info": {
+    "name": "TurfBook QR Integration API",
+    "description": "Complete API collection for TurfBook QR integration with Supabase auth and MongoDB backend",
+    "version": "1.0.0"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{supabase_access_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "supabase_access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "test_turf_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "qr_token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Turfs",
+      "item": [
+        {
+          "name": "Get All Turfs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/turfs",
+              "host": ["{{base_url}}"],
+              "path": ["api", "turfs"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Turf by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/turfs/{{test_turf_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "turfs", "{{test_turf_id}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "QR Code",
+      "item": [
+        {
+          "name": "Generate QR Code (Admin Only)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{supabase_access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/turfs/{{test_turf_id}}/generate-qr",
+              "host": ["{{base_url}}"],
+              "path": ["api", "turfs", "{{test_turf_id}}", "generate-qr"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get QR Code (JSON)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/turfs/{{test_turf_id}}/qr",
+              "host": ["{{base_url}}"],
+              "path": ["api", "turfs", "{{test_turf_id}}", "qr"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get QR Code (PNG)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/turfs/{{test_turf_id}}/qr",
+              "host": ["{{base_url}}"],
+              "path": ["api", "turfs", "{{test_turf_id}}", "qr"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Verify QR Token",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/turfs/{{test_turf_id}}/verify-qr?token={{qr_token}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "turfs", "{{test_turf_id}}", "verify-qr"],
+              "query": [
+                {
+                  "key": "token",
+                  "value": "{{qr_token}}"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Bookings",
+      "item": [
+        {
+          "name": "Create Booking",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{supabase_access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"turfId\": \"{{test_turf_id}}\",\n  \"slot\": {\n    \"date\": \"2024-12-25\",\n    \"start\": \"10:00\",\n    \"end\": \"11:00\"\n  },\n  \"amount\": 800,\n  \"qrUsed\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/bookings",
+              "host": ["{{base_url}}"],
+              "path": ["api", "bookings"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get User Bookings",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{supabase_access_token}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/bookings",
+              "host": ["{{base_url}}"],
+              "path": ["api", "bookings"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Verify JWT Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{supabase_access_token}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/auth/verify",
+              "host": ["{{base_url}}"],
+              "path": ["api", "auth", "verify"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
