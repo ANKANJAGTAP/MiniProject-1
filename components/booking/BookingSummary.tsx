@@ -57,6 +57,7 @@ export function BookingSummary({ turf, selectedDate, selectedSlots, qrUsed = fal
     try {
       const bookingData = {
         turfId: turf.id,
+        slotId: `slot_${Date.now()}`, // Generate a slot ID
         slot: {
           date: selectedDate.toISOString().split('T')[0],
           start: selectedSlots[0].split(' - ')[0],

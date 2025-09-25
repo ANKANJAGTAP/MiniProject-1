@@ -1,6 +1,6 @@
 # TurfBook - QR Integration with Supabase Auth & MongoDB
 
-A comprehensive turf booking platform with QR code integration, Supabase authentication, and MongoDB Atlas backend.
+A comprehensive turf booking platform with QR code integration, Supabase authentication, MongoDB Atlas backend, and real-time owner dashboard.
 
 ## ✅ Implementation Status
 
@@ -9,8 +9,10 @@ A comprehensive turf booking platform with QR code integration, Supabase authent
 - ✅ **Supabase Authentication**: Secure email/password authentication with JWT verification
 - ✅ **MongoDB Atlas Backend**: Scalable database for turfs, bookings, and profiles
 - ✅ **Real-time Booking**: Live availability and instant confirmations
+- ✅ **Owner Dashboard**: Real-time booking management and slot control
 - ✅ **Admin Panel**: QR code regeneration and booking management
-- ✅ **Security**: JWT middleware, admin role checking, booking conflict prevention
+- ✅ **Atomic Reservations**: Prevents double-booking with atomic slot reservation
+- ✅ **Security**: JWT middleware, role-based access, booking conflict prevention
 
 ### API Endpoints
 - ✅ `GET /api/turfs` - List all turfs
@@ -20,6 +22,11 @@ A comprehensive turf booking platform with QR code integration, Supabase authent
 - ✅ `GET /api/turfs/:id/verify-qr?token=<token>` - Verify QR token
 - ✅ `POST /api/bookings` - Create booking (authenticated)
 - ✅ `GET /api/bookings` - Get user bookings (authenticated)
+- ✅ `POST /api/bookings/check` - Check slot availability
+- ✅ `PATCH /api/bookings/:id/status` - Owner accepts/rejects bookings
+- ✅ `GET /api/owner/profile` - Owner profile management
+- ✅ `GET /api/owner/bookings` - Owner booking dashboard
+- ✅ `PATCH /api/turfs/:id/slots/:slotId` - Owner slot management
 - ✅ `POST /api/auth/verify` - Verify Supabase JWT (debug)
 
 ## Environment Setup
@@ -44,6 +51,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY="your-anon-key"
 # Application Configuration
 FRONTEND_HOST="http://localhost:3000"
 CORS_ORIGINS="http://localhost:3000"
+QR_DUMMY_URL="/images/qr_dummy.png"
 
 # Admin Configuration
 ADMIN_EMAILS="admin1@example.com,admin2@example.com"
@@ -77,6 +85,9 @@ RATE_LIMIT_MAX=100
 # Install dependencies
 npm install
 
+# Run database migration (important!)
+npm run migrate
+
 # Create admin user (optional)
 node scripts/create-admin-user.js create admin@example.com password123
 
@@ -89,17 +100,40 @@ npm run dev
 
 ## Database Collections
 
+### users
+```javascript
+{
+  _id: ObjectId,
+  supabase_id: String,    // Maps to Supabase user ID
+  name: String,
+  email: String,
+  role: String,           // 'player' or 'owner'
+  phone: String,          // Optional
+  profilePhotoUrl: String, // Optional
+  createdAt: Date,
+  lastActive: Date
+}
+```
+
 ### turfs
 ```javascript
 {
   _id: ObjectId,
+  ownerId: ObjectId,      // Reference to users collection
   name: String,
-  location: String,
+  address: String,
   pricePerHour: Number,
   images: [String],
   availableSports: [String],
   amenities: [String],
   operatingHours: { open: String, close: String },
+  timeSlots: [{
+    slotId: String,       // Unique slot identifier
+    startISO: String,     // HH:MM format
+    endISO: String,       // HH:MM format
+    price: Number,
+    available: Boolean
+  }],
   qrToken: String,        // Unique token for QR verification
   qrUrl: String,          // Optional: persisted QR URL
   createdAt: Date,
@@ -112,32 +146,43 @@ npm run dev
 {
   _id: ObjectId,
   turfId: ObjectId,       // Reference to turf
-  userId: String,         // Supabase user ID
+  playerId: ObjectId,     // Reference to users collection
+  ownerId: ObjectId,      // Reference to users collection
+  slotId: String,         // Reference to turf timeSlot
   slot: { 
     date: String,         // YYYY-MM-DD format
     start: String,        // HH:MM format
     end: String           // HH:MM format
   },
+  startTime: Date,        // Full datetime
+  endTime: Date,          // Full datetime
   amount: Number,
-  status: String,         // 'pending', 'confirmed', 'cancelled'
+  status: String,         // 'pending', 'confirmed', 'cancelled', 'completed'
   paymentId: String,      // Optional: payment reference
   createdAt: Date,
-  qrUsed: Boolean         // Whether booking was made via QR code
+  qrUsed: Boolean,        // Whether booking was made via QR code
+  qrImageUrl: String      // QR dummy image URL
 }
 ```
 
-### profiles
-```javascript
-{
-  _id: ObjectId,
-  supabaseUserId: String, // Maps to Supabase user ID
-  name: String,
-  email: String,
-  phone: String,          // Optional
-  createdAt: Date,
-  lastActive: Date
-}
-```
+## Owner Dashboard Features
+
+### Real-time Booking Management
+- ✅ Live booking notifications (10-second polling)
+- ✅ Accept/Reject pending bookings
+- ✅ Mark bookings as completed
+- ✅ View player contact information
+
+### Slot Management
+- ✅ Edit time slot availability
+- ✅ Update pricing per slot
+- ✅ Prevent conflicts with existing bookings
+- ✅ Atomic slot reservation system
+
+### Access Control
+- ✅ Owner-only dashboard access
+- ✅ Role-based API endpoints
+- ✅ Secure JWT verification
 
 ## QR Code Flow
 
@@ -151,6 +196,12 @@ npm run dev
 4. **Security**: QR usage is tracked; regenerating invalidates old tokens
 
 ## API Testing
+
+### Concurrency Testing
+```bash
+# Test atomic booking reservations
+npm run test-concurrency
+```
 
 ### Run Automated Tests
 ```bash
@@ -177,7 +228,13 @@ curl "http://localhost:3000/api/turfs/TURF_ID/verify-qr?token=QR_TOKEN"
 curl -X POST http://localhost:3000/api/bookings \
   -H "Authorization: Bearer SUPABASE_JWT" \
   -H "Content-Type: application/json" \
-  -d '{"turfId":"TURF_ID","slot":{"date":"2024-12-25","start":"10:00","end":"11:00"},"amount":800}'
+  -d '{"turfId":"TURF_ID","slotId":"SLOT_ID","slot":{"date":"2024-12-25","start":"10:00","end":"11:00"},"amount":800}'
+
+# 5. Owner accepts booking
+curl -X PATCH http://localhost:3000/api/bookings/BOOKING_ID/status \
+  -H "Authorization: Bearer OWNER_JWT" \
+  -H "Content-Type: application/json" \
+  -d '{"status":"confirmed"}'
 ```
 
 ## Admin Management
@@ -194,13 +251,27 @@ node scripts/create-admin-user.js update user@example.com
 ### Admin Features
 - QR code regeneration
 - View all bookings
+- Owner dashboard access
 - Access to admin-only endpoints
+
+## Owner Features
+
+### Dashboard Access
+- Real-time booking notifications
+- Accept/reject booking requests
+- Manage time slot availability
+- View player contact information
+
+### Slot Management
+- Edit slot times and pricing
+- Enable/disable slot availability
+- Prevent conflicts with existing bookings
 
 ## Security Features
 
 - **JWT Verification**: All protected endpoints verify Supabase JWTs
-- **Admin Role Checking**: Via `app_metadata.role` or `ADMIN_EMAILS`
-- **Booking Conflict Prevention**: Prevents double-booking same slot
+- **Role-Based Access**: Player/Owner/Admin role checking
+- **Atomic Reservations**: Prevents double-booking with atomic operations
 - **QR Token Security**: Tokens are UUIDs, regeneration invalidates old tokens
 - **CORS Protection**: Configurable allowed origins
 - **Rate Limiting**: Basic rate limiting for sensitive endpoints
@@ -223,6 +294,23 @@ node scripts/create-admin-user.js update user@example.com
 ## Testing Checklist
 
 ### Manual Verification Steps
+
+1. **Database Migration**:
+   - ✅ Run `npm run migrate` to update schema
+   - ✅ Verify users, turfs, and bookings collections
+   - ✅ Check indexes are created properly
+
+2. **Owner Dashboard**:
+   - ✅ Owner can login and access dashboard
+   - ✅ Real-time booking updates appear
+   - ✅ Accept/reject functionality works
+   - ✅ Slot management prevents conflicts
+
+3. **Atomic Reservations**:
+   - ✅ Concurrent booking attempts handled correctly
+   - ✅ Only one booking succeeds per slot
+   - ✅ Failed bookings return 409 conflict
+   - ✅ Slot availability updates atomically
 
 1. **QR Generation & Display**:
    - ✅ QR code appears on turf detail page
@@ -295,6 +383,12 @@ node scripts/create-admin-user.js update user@example.com
 
 ### Debug Commands
 ```bash
+# Run database migration
+npm run migrate
+
+# Test concurrent bookings
+npm run test-concurrency
+
 # Test MongoDB connection
 curl http://localhost:3000/api/test-mongo
 
@@ -308,6 +402,8 @@ curl http://localhost:3000/api/turfs/TURF_ID
 
 ## Development Tools
 
+- **Migration Script**: `scripts/migrate-database.js`
+- **Concurrency Tests**: `tests/concurrency.test.js`
 - **Postman Collection**: Import `postman-collection.json`
 - **cURL Examples**: See `curl-examples.md`
 - **Admin Scripts**: `scripts/create-admin-user.js`
@@ -318,9 +414,9 @@ curl http://localhost:3000/api/turfs/TURF_ID
 ## 🚀 Quick Start Summary
 
 1. Create Supabase project and add credentials to `.env`
-2. Run `npm install && npm run seed`
+2. Run `npm install && npm run migrate && npm run seed`
 3. Start with `npm run dev`
 4. Create admin user: `node scripts/create-admin-user.js create admin@example.com password123`
-5. Test QR flow: Visit turf detail page → scan QR → book slot
-
-**The system is production-ready with comprehensive security, testing, and documentation!**
+5. Test owner dashboard: Login as owner → view bookings → manage slots
+6. Test QR flow: Visit turf detail page → scan QR → book slot
+7. Test concurrency: `npm run test-concurrency`

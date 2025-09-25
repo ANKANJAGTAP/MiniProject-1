@@ -53,6 +53,7 @@ curl -X POST "${BASE_URL}/api/bookings" \
   -H "Content-Type: application/json" \
   -d '{
     "turfId": "'${TURF_ID}'",
+    "slotId": "slot_123",
     "slot": {
       "date": "2024-12-25",
       "start": "10:00",
@@ -62,6 +63,35 @@ curl -X POST "${BASE_URL}/api/bookings" \
     "qrUsed": true
   }'
 ```
+# 5. Check slot availability
+curl -X POST "${BASE_URL}/api/bookings/check" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "turfId": "'${TURF_ID}'",
+    "slotId": "slot_123"
+  }'
+
+# 6. Owner accepts booking
+curl -X PATCH "${BASE_URL}/api/bookings/BOOKING_ID/status" \
+  -H "Authorization: Bearer ${OWNER_TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "status": "confirmed"
+  }'
+
+# 7. Get owner bookings
+curl -X GET "${BASE_URL}/api/owner/bookings" \
+  -H "Authorization: Bearer ${OWNER_TOKEN}"
+
+# 8. Update time slot
+curl -X PATCH "${BASE_URL}/api/turfs/${TURF_ID}/slots/slot_123" \
+  -H "Authorization: Bearer ${OWNER_TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "price": 900,
+    "available": true
+  }'
+
 
 ## 8. Get User Bookings
 ```bash

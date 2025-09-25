@@ -31,8 +31,9 @@ export async function getDatabase(): Promise<Db> {
 // Database schemas
 export interface TurfDocument {
   _id?: ObjectId;
+  ownerId: ObjectId;
   name: string;
-  location: string;
+  address: string;
   pricePerHour: number;
   images: string[];
   availableSports: string[];
@@ -41,6 +42,13 @@ export interface TurfDocument {
     open: string;
     close: string;
   };
+  timeSlots: {
+    slotId: string;
+    startISO: string;
+    endISO: string;
+    price: number;
+    available: boolean;
+  }[];
   qrToken: string;
   qrUrl?: string;
   createdAt: Date;
@@ -50,25 +58,34 @@ export interface TurfDocument {
 export interface BookingDocument {
   _id?: ObjectId;
   turfId: ObjectId;
-  userId: string; // Supabase user ID
+  playerId: ObjectId;
+  ownerId: ObjectId;
+  slotId: string;
   slot: {
     date: string;
     start: string;
     end: string;
   };
+  startTime: Date;
+  endTime: Date;
   amount: number;
-  status: 'pending' | 'confirmed' | 'cancelled';
+  status: 'pending' | 'confirmed' | 'cancelled' | 'completed';
   paymentId?: string;
   createdAt: Date;
   qrUsed: boolean;
+  qrImageUrl?: string;
 }
 
-export interface ProfileDocument {
+export interface UserDocument {
   _id?: ObjectId;
-  supabaseUserId: string;
+  supabase_id: string;
   name: string;
+  email: string;
+  role: 'player' | 'owner';
   phone?: string;
+  profilePhotoUrl?: string;
   createdAt: Date;
+  lastActive?: Date;
 }
 
 export default clientPromise;

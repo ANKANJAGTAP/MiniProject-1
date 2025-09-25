@@ -1,43 +1,50 @@
-// For Next.js Pages Router (/pages/api/users.ts)
-import { NextApiRequest, NextApiResponse } from 'next';
-import { MongoClient } from 'mongodb';
+import { NextRequest, NextResponse } from 'next/server';
+import { getDatabase, UserDocument } from '@/lib/mongodb-atlas';
+import { createAuthMiddleware } from '@/lib/auth-middleware';
 
-const uri = process.env.MONGODB_URI as string;
-const client = new MongoClient(uri);
+export async function POST(request: NextRequest) {
+  // Check authentication
+  const authResult = await createAuthMiddleware()(request);
+  if (authResult) return authResult;
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method === 'POST') {
-    try {
-      await client.connect();
-      const database = client.db('turf_booking');
-      const users = database.collection('users');
-      
-      const userData = req.body;
-      
-      // Check if user already exists
-      const existingUser = await users.findOne({ 
-        $or: [{ email: userData.email }, { uid: userData.uid }] 
-      });
-      
-      if (existingUser) {
-        return res.status(400).json({ message: 'User already exists' });
-      }
-      
-      // Insert new user
-      const result = await users.insertOne(userData);
-      
-      res.status(201).json({ 
-        message: 'User created successfully', 
-        id: result.insertedId 
-      });
-    } catch (error) {
-      console.error('Error saving user to MongoDB:', error);
-      res.status(500).json({ message: 'Internal server error' });
-    } finally {
-      await client.close();
+  try {
+    const body = await request.json();
+    const { supabase_id, name, email, role, phone } = body;
+    
+    if (!supabase_id || !name || !email || !role) {
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
-  } else {
-    res.setHeader('Allow', ['POST']);
-    res.status(405).end(`Method ${req.method} Not Allowed`);
+
+    if (!['player', 'owner'].includes(role)) {
+      return NextResponse.json({ error: 'Invalid role' }, { status: 400 });
+    }
+
+    const db = await getDatabase();
+    
+    // Check if user already exists
+    const existingUser = await db.collection('users').findOne({ supabase_id });
+    if (existingUser) {
+      return NextResponse.json({ error: 'User already exists' }, { status: 409 });
+    }
+
+    const user: UserDocument = {
+      supabase_id,
+      name,
+      email,
+      role: role as 'player' | 'owner',
+      phone,
+      createdAt: new Date()
+    };
+
+    const result = await db.collection('users').insertOne(user);
+
+    return NextResponse.json({ 
+      success: true, 
+      userId: result.insertedId,
+      user: { ...user, _id: result.insertedId }
+    }, { status: 201 });
+  } catch (error) {
+    console.error('Error creating user:', error);
+    return NextResponse.json({ error: 'Failed to create user' }, { status: 500 });
   }
 }

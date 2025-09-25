@@ -9,7 +9,9 @@
     "lint": "next lint",
     "seed": "node scripts/seed-turfs.js",
     "test": "node tests/api.test.js",
-    "create-admin": "node scripts/create-admin-user.js"
+    "create-admin": "node scripts/create-admin-user.js",
+    "migrate": "node scripts/migrate-database.js",
+    "test-concurrency": "node tests/concurrency.test.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
