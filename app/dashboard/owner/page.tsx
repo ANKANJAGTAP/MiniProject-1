@@ -193,6 +193,7 @@ export default function OwnerDashboard() {
         <Tabs defaultValue="bookings" className="space-y-6">
           <TabsList>
             <TabsTrigger value="bookings">Bookings</TabsTrigger>
+            <TabsTrigger value="turfs">My Turfs</TabsTrigger>
             <TabsTrigger value="profile">Profile</TabsTrigger>
           </TabsList>
 
@@ -319,9 +320,36 @@ export default function OwnerDashboard() {
                       )}
                     </CardContent>
                   </Card>
-                ))}
+                <Link href="/dashboard/owner/turfs" className="hover:text-green-600">
+                  Manage My Turfs
+                </Link>
               </div>
             )}
+          </TabsContent>
+
+          <TabsContent value="turfs">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-semibold text-gray-900">My Turfs</h2>
+              <Link href="/dashboard/owner/turfs">
+                <Button className="bg-green-500 hover:bg-green-600">
+                  Manage All Turfs
+                </Button>
+              </Link>
+            </div>
+            <Card>
+              <CardContent className="text-center py-12">
+                <MapPin className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Manage Your Turfs</h3>
+                <p className="text-gray-600 mb-6">
+                  Add, edit, and manage your sports facilities from the dedicated turfs section.
+                </p>
+                <Link href="/dashboard/owner/turfs">
+                  <Button className="bg-green-500 hover:bg-green-600">
+                    Go to Turfs Management
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
           </TabsContent>
 
           <TabsContent value="profile">
