@@ -48,6 +48,11 @@ export function LandingHeader() {
                 Sign Up
               </Button>
             </Link>
+            <Link href="/dashboard/owner/turfs">
+              <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700">
+                List Your Turf
+              </Button>
+            </Link>
           </div>
 
           <button
@@ -82,6 +87,11 @@ export function LandingHeader() {
                 <Link href="/auth/register">
                   <Button size="sm" className="w-full bg-green-500 hover:bg-green-600">
                     Sign Up
+                  </Button>
+                </Link>
+                <Link href="/dashboard/owner/turfs">
+                  <Button variant="ghost" size="sm" className="w-full text-blue-600 hover:text-blue-700">
+                    List Your Turf
                   </Button>
                 </Link>
               </div>

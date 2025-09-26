@@ -51,6 +51,7 @@ export interface TurfDocument {
   }[];
   qrToken: string;
   qrUrl?: string;
+  description?: string;
   createdAt: Date;
   updatedAt: Date;
 }
