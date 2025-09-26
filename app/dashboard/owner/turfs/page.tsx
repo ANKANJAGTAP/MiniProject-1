@@ -6,17 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Plus, 
-  Edit, 
-  Trash2, 
-  MapPin, 
-  Clock, 
-  Star,
-  Users,
-  RefreshCw,
-  QrCode
-} from 'lucide-react';
+import { Plus, CreditCard as Edit, Trash2, MapPin, Clock, Star, Users, RefreshCw, QrCode } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
 
